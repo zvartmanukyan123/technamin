@@ -1,0 +1,22 @@
+{
+  "cmd": "get",
+  "params": {
+    "channel": "active",
+    "label": "live games",
+    "subscribe": true,
+    "what": {
+      "game": ["_id", "date", "home", "away", "status", "markets_count"],
+      "match_info": ["score", "scores", "game_score", "server", "time"],
+      "region": ["id", "alias", "name", "order"],
+      "sport": ["id", "alias", "name", "order"],
+      "tournament": ["id", "alias", "name", "order"]
+    },
+    "where": {
+      "game": {
+        "active": true,
+        "feed": "live"
+      }
+    }
+  },
+  "rid": "FF32862C-84F7-1276-CC06-289CA979E081"
+}

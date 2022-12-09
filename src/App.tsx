@@ -1,25 +1,19 @@
-import React from 'react';
-import logo from './logo.svg';
+import { Routes, Route } from 'react-router-dom';
+import { Home } from './components/Home';
+import { Game } from './components/Game';
+
 import './App.css';
+import { useSocket } from './hooks/useSocket';
+
+
 
 function App() {
+  const data = useSocket()
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Routes>
+      <Route path='/' element={<Home data={data} />} />
+      <Route path='/:gameId' element={<Game />} />
+    </Routes>
   );
 }
 
