@@ -77,8 +77,8 @@ interface Tournament {
 }
 
 export interface MessageData {
-  data: DataResponse;
-  rid: string;
+  data: DataResponse[];
+  rid?: string;
   sid?: string;
 }
 

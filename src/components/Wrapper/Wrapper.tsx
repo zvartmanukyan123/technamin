@@ -6,6 +6,8 @@ import './wrapper.css';
 export const Wrapper = ({ nodes, name }: { nodes: any; name?: string }): any => {
   const [isOpen, setIsOpen] = useState(true);
 
+  console.log(name, nodes, 'wrapper');
+
   const handleClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.stopPropagation();
     setIsOpen(!isOpen);

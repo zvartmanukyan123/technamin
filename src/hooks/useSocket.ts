@@ -1,12 +1,22 @@
 import init from "../core/requests/init.json";
 import ping from "../core/requests/ping.json";
 import get from "../core/requests/get.json";
-import { useState, useRef, useEffect } from 'react';
+import {useState, useRef, useEffect, useCallback} from "react";
 import { DataResponse, MessageData } from "../interfaces/Interfaces";
 import { BASE_URL, INTERVAL } from "../core/constants";
 
+interface MsgData {
+  data: DataResponse[];
+  sid: string;
+}
+
+const initialData: MsgData = {
+  data: [],
+  sid: "",
+};
+
 export const useSocket = () => {
-  const [data, setData] = useState<DataResponse[]>([]);
+  const [message, setMessage] = useState<MsgData>(initialData);
   const intervalId = useRef<null | NodeJS.Timer>(null);
   const initConnection = (ws: WebSocket) => ws.send(JSON.stringify(init));
 
@@ -17,41 +27,59 @@ export const useSocket = () => {
     );
   };
 
-  const addNewItem = (newItem: DataResponse) => {
-    console.log("new item", newItem);
-    setData((prevState) => {
-      return [...prevState, { ...newItem }];
+  const addNewItem = useCallback((newItem: DataResponse) => {
+    setMessage((prevState) => {
+      return {
+        ...prevState,
+        data: [...prevState.data, { ...newItem }]
+      };
     });
-  };
+  }, [setMessage]);
 
-  const removeItem = (removeableItem: DataResponse) => {
-    console.log("msg remove", removeableItem);
-    const filteredData = data.filter((item) => item._id !== removeableItem._id);
-    setData(filteredData);
-  };
-  const refreshData = (newData: DataResponse) => {
-    const updateableDataIndex = data.findIndex(
-      (item) => item._id === newData._id
-    );
-    console.log("updated", newData);
-    setData((prevState) => {
-      prevState[updateableDataIndex] = newData;
-      return [...prevState];
+  const updateItem = useCallback((item: DataResponse) => {
+    setMessage((prevState) => {
+      return {
+        ...prevState,
+        data: prevState.data.map((match) => {
+          if (match._id === item._id) {
+            return item;
+          }
+
+          return match;
+        })
+      };
     });
-  };
+  }, [setMessage]);
 
-  const updateData = (msg: MessageData) => {
-    if (!msg.sid) {
-      if (msg.data._new) {
-        addNewItem(msg.data);
+  const removeItem = useCallback((removeableItem: DataResponse) => {
+    const filteredData = message.data.filter((item) => item._id !== removeableItem._id);
+    setMessage({
+      ...message,
+      data: filteredData
+    });
+  }, [message, setMessage]);
+
+  const refreshData = useCallback((newData: DataResponse[]) => {
+    newData.forEach((item) => {
+
+      if (!item._remove) {
+        const existIndex = message.data.findIndex((ms) => ms._id === item._id);
+        if (existIndex > -1) {
+          updateItem(item);
+        } else {
+          addNewItem(item);
+        }
+      } else {
+        removeItem(item);
       }
-      if (msg.data._remove) {
-        removeItem(msg.data);
-      }
-    } else {
+    })
+  }, [message, updateItem, removeItem, addNewItem]);
+
+  const updateData = useCallback((msg: MessageData) => {
+    if (msg.data) {
       refreshData(msg.data);
     }
-  };
+  }, [refreshData]);
 
   useEffect(() => {
     const ws = new WebSocket(BASE_URL);
@@ -63,7 +91,6 @@ export const useSocket = () => {
 
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
-      console.log(msg, "event message");
       try {
         if (msg.rid === init.rid) {
           ws.send(JSON.stringify(get));
@@ -73,7 +100,18 @@ export const useSocket = () => {
         //   console.log(msg, "rid === get rid");
         //   setData(msg.data.data);
         // }
-        updateData(msg);
+        if (msg.data.data?.length) {
+          updateData({
+            data: msg.data.data,
+            rid: msg.rid,
+            sid: msg.sid,
+          });
+        } else if (msg.data?.length && msg.rid) {
+          updateData({
+            data: msg.data,
+            rid: msg.rid
+          })
+        }
       } catch (e) {
         console.log(e);
       }
@@ -83,7 +121,9 @@ export const useSocket = () => {
       ws.close();
       clearInterval(intervalId.current as NodeJS.Timer);
     };
-  }, []);
+  }, [updateData]);
 
-  return data;
+  console.log(message);
+
+  return message.data;
 };
